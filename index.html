@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/337/337946.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mi Editor MD Pro</title>
+    
+    <!-- Librerías de estilos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    
+    <style>
+        :root {
+            --bg: #f4f4f5;
+            --panel: #ffffff;
+            --text: #27272a;
+            --border: #e4e4e7;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --editor-bg: #ffffff;
+            --preview-bg: #ffffff;
+        }
+
+        body.dark-mode {
+            --bg: #18181b;
+            --panel: #27272a;
+            --text: #f4f4f5;
+            --border: #3f3f46;
+            --primary: #3b82f6;
+            --editor-bg: #1e1e24;
+            --preview-bg: #1e1e24;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        header {
+            background: var(--panel);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            height: 60px;
+            z-index: 10;
+        }
+
+        header h1 { font-size: 1.2rem; }
+        .actions { display: flex; gap: 10px; align-items: center; }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        button:hover { background: var(--bg); }
+        button.primary { background: var(--primary); color: white; border-color: var(--primary); }
+        button.primary:hover { background: var(--primary-hover); }
+        button.icon { padding: 8px; font-size: 1.1rem; }
+
+        .toolbar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 5px 20px;
+            display: flex;
+            gap: 5px;
+        }
+        .toolbar button {
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+        .toolbar button:hover { background: var(--bg); border-color: var(--border); }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: calc(100vh - 100px);
+        }
+
+        .editor-panel { border-right: 1px solid var(--border); height: 100%; }
+        textarea {
+            width: 100%; height: 100%; padding: 20px;
+            border: none; resize: none; background: var(--editor-bg); color: var(--text);
+            font-family: "SFMono-Regular", Consolas, monospace; font-size: 15px; line-height: 1.6;
+            outline: none;
+        }
+
+        .preview-panel { background: var(--bg); padding: 20px; height: 100%; overflow-y: auto; }
+        #preview {
+            background: var(--preview-bg); padding: 40px; border-radius: 8px;
+            min-height: 100%; max-width: 800px; margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); line-height: 1.6;
+            color: var(--text);
+        }
+
+        #preview h1, #preview h2, #preview h3 { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin: 20px 0 15px; }
+        #preview p { margin-bottom: 15px; }
+        #preview ul, #preview ol { margin-bottom: 15px; padding-left: 20px; }
+        #preview table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+        #preview th, #preview td { border: 1px solid var(--border); padding: 8px; }
+        #preview pre { background: var(--bg); padding: 16px; border-radius: 6px; overflow-x: auto; margin-bottom: 15px; }
+        #preview code { font-family: monospace; background: var(--bg); padding: 2px 6px; border-radius: 4px; }
+        
+        .mermaid { background: white; padding: 10px; border-radius: 6px; text-align: center; margin-bottom: 15px; }
+        .katex-display { margin: 15px 0; overflow-x: auto; }
+
+        @media (max-width: 800px) {
+            main { grid-template-columns: 1fr; }
+            .editor-panel { display: none; }
+        }
+
+        @media print {
+            @page { margin: 2cm; @bottom-right { content: counter(page); font-family: sans-serif; font-size: 10pt; } }
+            header, .editor-panel, .toolbar, .actions { display: none !important; }
+            body { display: block; background: white; height: auto; color: black; }
+            main { display: block; height: auto; }
+            .preview-panel { padding: 0 !important; background: white !important; overflow: visible !important; }
+            #preview { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; background: white !important; color: black !important; }
+            h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+            li, p, tr { break-inside: avoid; page-break-inside: avoid; }
+            .mermaid svg { max-width: 100%; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.4.0/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>📝 Editor MD Pro</h1>
+        <div class="actions">
+            <button id="themeToggle" class="icon" title="Cambiar Tema">🌙</button>
+            <button id="convertBtn">✨ Auto-Formatear</button>
+            <button id="saveMdBtn">💾 .MD</button>
+            <button id="downloadBtn" class="primary">📄 PDF</button>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <button onclick="insertFormat('**', '**')"><b>B</b></button>
+        <button onclick="insertFormat('*', '*')"><i>I</i></button>
+        <button onclick="insertFormat('# ', '')">H1</button>
+        <button onclick="insertFormat('## ', '')">H2</button>
+        <button onclick="insertFormat('- ', '')">Lista</button>
+        <button onclick="insertFormat('[', '](url)')">Enlace</button>
+        <button onclick="insertFormat('```\n', '\n```')">Código</button>
+    </div>
+
+    <main>
+        <div class="editor-panel">
+            <textarea id="editor" placeholder="Escribe aquí tu Markdown o pega texto plano..."></textarea>
+        </div>
+        <div class="preview-panel" id="previewContainer">
+            <div id="preview"></div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const previewContainer = document.getElementById('previewContainer');
+
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            marked.setOptions({
+                highlight: function (code, lang) {
+                    if (lang && hljs.getLanguage(lang)) {
+                        try { return hljs.highlight(code, { language: lang }).value; } catch (__) {}
+                    }
+                    return code;
+                }
+            });
+
+            const textoInicial = "# Documento de Prueba\n\nPega un texto plano de un PDF y haz clic en **Auto-Formatear**.\n\nTambién puedes usar matemáticas: $E = mc^2$\n\n```mermaid\ngraph TD;\n    A-->B;\n```";
+
+            try {
+                const guardado = localStorage.getItem('mi_markdown_guardado');
+                editor.value = guardado ? guardado : textoInicial;
+            } catch (e) { editor.value = textoInicial; }
+
+            function renderizar() {
+                preview.innerHTML = marked.parse(editor.value);
+                
+                if (typeof renderMathInElement !== 'undefined') {
+                    renderMathInElement(preview, {
+                        delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+                        throwOnError: false
+                    });
+                }
+
+                if (typeof mermaid !== 'undefined') {
+                    const codeBlocks = preview.querySelectorAll('code.language-mermaid');
+                    codeBlocks.forEach((block) => {
+                        const div = document.createElement('div');
+                        div.className = 'mermaid';
+                        div.textContent = block.textContent;
+                        block.parentElement.replaceWith(div);
+                    });
+                    try { mermaid.run({ nodes: preview.querySelectorAll('.mermaid') }); } catch(e) {}
+                }
+
+                const h1Match = editor.value.match(/^#\s+(.+)$/m);
+                document.title = h1Match ? `${h1Match[1].trim()} - Editor Pro` : 'Editor MD Pro';
+            }
+
+            function guardar() {
+                try { localStorage.setItem('mi_markdown_guardado', editor.value); } catch (e) {}
+            }
+
+            renderizar();
+
+            let isSyncingEditor = false, isSyncingPreview = false;
+            editor.addEventListener('scroll', () => {
+                if (isSyncingPreview) { isSyncingPreview = false; return; }
+                isSyncingEditor = true;
+                const p = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+                previewContainer.scrollTop = p * (previewContainer.scrollHeight - previewContainer.clientHeight);
+            });
+            previewContainer.addEventListener('scroll', () => {
+                if (isSyncingEditor) { isSyncingEditor = false; return; }
+                isSyncingPreview = true;
+                const p = previewContainer.scrollTop / (previewContainer.scrollHeight - previewContainer.clientHeight);
+                editor.scrollTop = p * (editor.scrollHeight - editor.clientHeight);
+            });
+
+            editor.addEventListener('input', () => { renderizar(); guardar(); });
+
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                themeToggle.textContent = isDark ? '☀️' : '🌙';
+                mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                renderizar();
+            });
+
+            window.insertFormat = function(prefix, suffix) {
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const text = editor.value;
+                const selected = text.substring(start, end);
+                const replacement = selected ? `${prefix}${selected}${suffix}` : `${prefix}texto${suffix}`;
+                editor.value = text.substring(0, start) + replacement + text.substring(end);
+                const newStart = start + prefix.length;
+                const newEnd = newStart + (selected ? selected.length : 5);
+                editor.setSelectionRange(newStart, newEnd);
+                editor.focus();
+                renderizar(); guardar();
+            }
+
+            document.getElementById('convertBtn').addEventListener('click', () => {
+                let inputText = editor.value;
+                if (!inputText.trim()) return;
+                
+                let resultadoMd = "";
+                const esHTML = /<([a-z][a-z0-9]*)\b[^>]*>/i.test(inputText);
+
+                if (esHTML && typeof TurndownService !== 'undefined') {
+                    const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+                    if (typeof turndownPluginGfm !== 'undefined') turndownService.use(turndownPluginGfm.gfm);
+                    resultadoMd = turndownService.turndown(inputText);
+                } else {
+                    let texto = inputText.replace(/\r\n/g, '\n');
+                    let bloques = texto.split(/\n\s*\n/);
+                    let md = [];
+
+                    for (let bloque of bloques) {
+                        let lineas = bloque.split('\n').map(l => l.trim()).filter(l => l);
+                        if (lineas.length === 0) continue;
+
+                        let esLista = lineas.every(l => /^([•\-\*]|\d+\.)\s/.test(l));
+                        
+                        if (esLista) {
+                            let listaFormateada = lineas.map(l => {
+                                if (/^[•\-\*]\s/.test(l)) return l.replace(/^[•\-\*]\s/, '- ');
+                                if (/^\d+\.\s/.test(l)) return l.replace(/^(\d+\.)\s*/, '$1 ');
+                                return `- ${l}`;
+                            });
+                            md.push(listaFormateada.join('\n'));
+                        } else {
+                            let parrafoActual = [];
+                            for (let i = 0; i < lineas.length; i++) {
+                                let linea = lineas[i];
+                                
+                                if (i === 0 && linea.length < 70 && !/[.!?]$/.test(linea)) {
+                                    md.push(`## ${linea}`);
+                                    continue;
+                                }
+
+                                parrafoActual.push(linea);
+
+                                if (/[.!?]$/.test(linea) || i === lineas.length - 1) {
+                                    md.push(parrafoActual.join(' '));
+                                    parrafoActual = [];
+                                }
+                            }
+                            if (parrafoActual.length > 0) md.push(parrafoActual.join(' '));
+                        }
+                    }
+                    resultadoMd = md.join('\n\n');
+                }
+
+                editor.value = resultadoMd;
+                renderizar(); 
+                guardar();
+            });
+
+            document.getElementById('saveMdBtn').addEventListener('click', () => {
+                const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                let filename = document.title.replace(' - Editor Pro', '').trim() || 'documento';
+                a.download = `${filename}.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            document.getElementById('downloadBtn').addEventListener('click', () => { window.print(); });
+        });
+    </script> <!-- ¡AQUÍ ESTABA EL ERROR! Faltaba este cierre -->
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
+        }
+    </script>
+</body>
+</html>

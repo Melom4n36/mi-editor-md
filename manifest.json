@@ -1,0 +1,21 @@
+{
+  "name": "Mi Editor MD Pro",
+  "short_name": "MD Pro",
+  "description": "Editor de Markdown con conversión a PDF y autoformateo",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/337/337946.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/337/337946.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
